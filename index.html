@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Kiosk Query & View</title>
+        <script type="module" src="/src/hm-component.ts"></script>
+        <link rel="stylesheet" href="/static/styles.css"/>
+        <style>
+            header {
+                background: lightgrey;
+                padding: 0.5em;
+                margin-bottom: 2em;
+            }
+            body {
+                height: 100vh
+            }
+
+        </style>
+    </head>
+    <body>
+
+    <hm-component id="hmcomponent" ></hm-component>
+
+    <script type="module">
+        import { getFACase } from "./testdata.js";
+        window.addEventListener("load", () => {
+
+            let hm = document.querySelector("#hmcomponent")
+            const nodes = [...getFACase()]
+            console.log(nodes)
+            hm.hmNodes = nodes;
+        })
+    </script>
+    </body>
+    <!--suppress JSUnresolvedLibraryURL -->
+</html>

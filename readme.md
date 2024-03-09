@@ -1,22 +1,13 @@
-# 💼 The Office
+# ⚙️ hmComponent: Harris Matrix Component
  
-## 🤸🏿👽🕵️ This repository is for people 🤸🤖🎅
+## description
 
-No matter for which field-project or which part of the software, it is here and only here in this repository where we all collaborate, report bugs and ideas, discuss ...
+This WebComponent renders a Harris Matrix to the screen. There are no additional ui elements attached to it. This is just the central rendering component being used in all contexts where a Harris Matrix needs to be visualized.
 
 ## typical workplaces
 - 🧪 [testers work here](https://github.com/arch-kiosk/arch-kiosk-office/projects/25)
 - 🪲 [please file requests and bug tickets under Issues](https://github.com/arch-kiosk/arch-kiosk-office/issues)
-
-## other places
-
-📗 **documentation and video tutorials for users and admins can be found on the official [Kiosk web-site](https://sites.brown.edu/kiosk)**
-
-📕 **wiki-based documentation can be found in [the kiosk wiki](https://wiki.arch-kiosk.brown.edu/urapdev/doku.php?id=start)**  (🔒 login needed)
-
-💾 **The main code for kiosk is here: [kiosk](https://github.com/arch-kiosk/kiosk)**  
-
-🧨 **The code for filemaker recording lives here: [filemaker_recording](https://github.com/arch-kiosk/filemaker-recording)**  
+- 📕 **wiki-based documentation can be found in [the kiosk wiki](https://wiki.arch-kiosk.brown.edu/urapdev/doku.php?id=start)**  (🔒 login needed)
 
 ## how we organize our work
 This guide reminds us what tools and files we use especially during planning, customization and documentation:  
