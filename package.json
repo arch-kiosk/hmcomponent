@@ -2,7 +2,7 @@
   "name": "hmcomponent",
   "description": "Kiosk Harris Matrix Web Component",
   "private": false,
-  "version": "0.15",
+  "version": "0.16",
   "type": "module",
   "main": "hmcomponent.ts",
   "exports": {

@@ -96,9 +96,9 @@ export class HMComponent extends LitElement {
     private nodeTextColorTagged: RGBAColor;
     private nodeAccentTextColor: RGBAColor;
 
-    // private nodeColorAlert: string;
+    private nodeColorAlert: string;
     private nodeLocusTypeTextColor: string;
-    // private nodeLocusTypeAccent: string;
+    private nodeLocusTypeAccent: string;
 
     private cssFontFamily: string;
     private locusTypeColors: AnyDict;
@@ -138,7 +138,7 @@ export class HMComponent extends LitElement {
     showErrors = true;
 
     @property()
-    mouseMode = 0;  // 0 = hand, 1 = mover
+    mouseMode = 1;  // 0 = hand, 1 = mover
 
     @property()
     layout: AnyDict = {
@@ -179,9 +179,9 @@ export class HMComponent extends LitElement {
 
     constructor() {
         super();
-        fabric.loadSVGFromString(this.wallSVGStr, (results, options) => {
-            this.wallSVG = fabric.util.groupSVGElements(results, options);
-        });
+        // fabric.loadSVGFromString(this.wallSVGStr, (results, options) => {
+        //     this.wallSVG = fabric.util.groupSVGElements(results, options);
+        // });
     }
 
     firstUpdated(_changedProperties: any) {
@@ -358,8 +358,12 @@ export class HMComponent extends LitElement {
             }
             console.log("solved cycle " + logStr);
         }
-        for (let r of result.removed) {
-            console.log(`removed relation ${findNode(this.hmNodes, r[0]).name}<->${findNode(this.hmNodes, r[1]).name}`);
+        try {
+            for (let r of result.removed) {
+                console.log(`removed relation ${findNode(this.hmNodes, r[0]).name}<->${findNode(this.hmNodes, r[1]).name}`);
+            }
+        } catch(e) {
+            console.log(`_analyzeGraph: Error when listing removed relations ${e}`)
         }
         console.log("Analyze relations returned", result);
         console.log(`Analyzing the relations took ${Date.now() - startTime} ms`);
@@ -558,25 +562,29 @@ export class HMComponent extends LitElement {
                 let edgeType = this.hmGraph.edge(edge).type;
                 if (edgeType === "earlier") {
                     const targetNode = this.hmNodes.find((n) => n.id === edge.w);
-                    const newEdge = <HMEdge>{
-                        id: ++newEdgeId,
-                        sourceId: node.id,
-                        targetId: targetNode.id,
-                        sourceNode: node,
-                        targetNode: targetNode,
-                        fromX: node.pos.x,
-                        toX: targetNode.pos.x,
-                        fromY: node.pos.y,
-                        toY: targetNode.pos.y,
-                        southX: -1,
-                        lane: 1,
-                        inOrder: 0,
-                        outOrder: 0,
-                        debug: node.name + "->" + targetNode.name,
-                        colorIndex: 0,
-                    };
-                    node.outEdges.push(newEdge);
-                    targetNode.inEdges.push(newEdge);
+                    if (targetNode) {
+                        const newEdge = <HMEdge>{
+                            id: ++newEdgeId,
+                            sourceId: node.id,
+                            targetId: targetNode.id,
+                            sourceNode: node,
+                            targetNode: targetNode,
+                            fromX: node.pos.x,
+                            toX: targetNode.pos.x,
+                            fromY: node.pos.y,
+                            toY: targetNode.pos.y,
+                            southX: -1,
+                            lane: 1,
+                            inOrder: 0,
+                            outOrder: 0,
+                            debug: node.name + "->" + targetNode.name,
+                            colorIndex: 0,
+                        };
+                        node.outEdges.push(newEdge);
+                        targetNode.inEdges.push(newEdge);
+                    } else {
+                        console.log(`_hmGraphEdges2hmNodeEdges: targetNode ${edge.w} not found. source node is ${node.id}/${node.name}`)
+                    }
                 }
             }
         });
@@ -1290,6 +1298,7 @@ export class HMComponent extends LitElement {
 
     _registerCanvasEvents() {
         this.canvas.on("mouse:wheel", opt => {
+            console.log("Mouse wheel")
             let delta = opt.e.deltaY;
             let zoom = this.canvas.getZoom();
             let specialKey = opt.e.altKey || opt.e.ctrlKey;
@@ -1303,32 +1312,45 @@ export class HMComponent extends LitElement {
         });
         this.canvas.on("mouse:down", (opt) => {
             let evt = opt.e;
-            let specialKey = evt.altKey || evt.ctrlKey;
-            if ((specialKey && !(this.mouseMode == 1)) || (!specialKey && (this.mouseMode == 1))) {
-                this.isDragging = true;
-                this.selection = false;
-                this.lastPosX = evt.clientX;
-                this.lastPosY = evt.clientY;
-            } else {
-                if (!opt.target) {
-                    this._selectNode();
+            const mousePos = this.getMousePosFromEvent(evt)
+            if (mousePos) {
+                let specialKey = evt.altKey || evt.ctrlKey;
+                if ((specialKey && !(this.mouseMode == 1)) || (!specialKey && (this.mouseMode == 1))) {
+                    this.isDragging = true;
+                    this.selection = false;
+                    this.lastPosX = mousePos.clientX;
+                    this.lastPosY = mousePos.clientY;
+                    console.log("Mouse down", this.lastPosX, this.lastPosY, evt)
+                } else {
+                    if (!opt.target) {
+                        this._selectNode();
+                    }
                 }
             }
         });
         this.canvas.on("mouse:move", (opt) => {
             if (this.isDragging) {
-                let e = opt.e;
-                let vpt = this.canvas.viewportTransform;
-                vpt[4] += e.clientX - this.lastPosX;
-                vpt[5] += e.clientY - this.lastPosY;
-                this.canvas.requestRenderAll();
-                this.lastPosX = e.clientX;
-                this.lastPosY = e.clientY;
+                let evt = opt.e;
+                const mousePos = this.getMousePosFromEvent(evt)
+                if (mousePos) {
+                    let vpt = this.canvas.viewportTransform;
+                    vpt[4] += mousePos.clientX - this.lastPosX;
+                    vpt[5] += mousePos.clientY - this.lastPosY;
+                    this.canvas.requestRenderAll();
+                    this.lastPosX = mousePos.clientX;
+                    this.lastPosY = mousePos.clientY;
+                    console.log("dragging", this.lastPosX, this.lastPosY, evt)
+                } else {
+                    this.isDragging = false
+                    this.selection = true;
+                    this.canvas.requestRenderAll();
+                }
             }
         });
         this.canvas.on("mouse:up", () => {
             // on mouse up we want to recalculate new interaction
             // for all objects, so we call setViewportTransform
+            console.log("Mouse up")
             if (this.isDragging) {
                 this.canvas.setViewportTransform(this.canvas.viewportTransform);
                 this.isDragging = false;
@@ -2284,6 +2306,21 @@ export class HMComponent extends LitElement {
             this.dispatchEvent(new CustomEvent("hm-repaint",
                 { bubbles: true, composed: true, detail: {} }));
         }, 0);
+    }
+
+    private getMousePosFromEvent(e: MouseEvent | TouchEvent) {
+        let mousePos: {clientX: number, clientY: number}
+        try {
+            if (e instanceof MouseEvent) {
+                mousePos = { clientX: e.clientX, clientY: e.clientY }
+            }
+            if (e instanceof TouchEvent) {
+                mousePos = { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }
+            }
+        } catch {
+            mousePos= undefined
+        }
+        return mousePos
     }
 }
 

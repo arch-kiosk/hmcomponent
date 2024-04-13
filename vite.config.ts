@@ -36,7 +36,7 @@ export default defineConfig(({ command, mode }) => {
                 formats: ["es"],
             },
             // rollupOptions: {
-            //   external: ['@vaading'],
+            //   external: ['@vaadin'],
             // },
         },
         server: {

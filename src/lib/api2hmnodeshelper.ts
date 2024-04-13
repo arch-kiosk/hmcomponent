@@ -1,4 +1,12 @@
-import { ERR_FAULTY, ERR_MULTIPLE, ERR_NON_TEMPORAL_RELATION, hmNode } from "./hm";
+import {
+    ERR_CONTRADICTION,
+    ERR_CYCLE,
+    ERR_FAULTY,
+    ERR_MISSING_REVERSE,
+    ERR_MULTIPLE,
+    ERR_NON_TEMPORAL_RELATION,
+    hmNode
+} from "./hm";
 import { AnyDict } from "./hmlabtypes";
 
 export const LATER = "later";
@@ -58,7 +66,7 @@ export class Locus {
 export function getChronType(chronType: string, relationType: string) {
 
     let supportedChronTypes = [LATER, EARLIER, SAME];
-    if (!chronType || !supportedChronTypes.find(t => chronType === t)) {
+    if (!chronType || !supportedChronTypes.find(t => chronType.startsWith(t))) {
         switch (relationType) {
             case "abuts":
                 chronType = LATER;
@@ -90,6 +98,10 @@ export function getChronType(chronType: string, relationType: string) {
             default:
                 chronType = "";
                 console.error(`The chron type ${chronType} is not supported and neither is the relation type ${relationType}`);
+        }
+    } else {
+        if (chronType) {
+            chronType = supportedChronTypes.find(t => chronType.startsWith(t))
         }
     }
 
@@ -179,6 +191,31 @@ export function amendMissingLocusRelations(relations: Array<LocusRelation>) {
 
 }
 
+export function getDroppedReasonStr(reason: Number) {
+    let rc = "unknown"
+    switch (reason) {
+        case ERR_FAULTY:
+            rc = "missing information"
+            break;
+        case ERR_MISSING_REVERSE:
+            rc = "missing reverese relation"
+            break;
+        case ERR_CYCLE:
+            rc = "cyclic relations"
+            break;
+        case ERR_CONTRADICTION:
+            rc = "contradictory relations"
+            break;
+        case ERR_MULTIPLE:
+            rc = "excess relation"
+            break;
+        case ERR_NON_TEMPORAL_RELATION:
+            rc = "non-temporal relation"
+            break;
+    }
+    return rc
+}
+
 export function api2HmNodes(relations: Array<LocusRelation>, loci: Array<Locus>, droppedRelations: Array<DroppedRelation>) {
     const nodes: Map<string, hmNode> = new Map();
 
@@ -202,7 +239,7 @@ export function api2HmNodes(relations: Array<LocusRelation>, loci: Array<Locus>,
             nodes.set(locusUID, node);
         }
 
-        if (apiRecord.related_arch_context === "") {
+        if (!apiRecord.related_arch_context || apiRecord.related_arch_context === "") {
             console.log(`api2HmNodes: ${node.name} has a relation to nowhere`);
             droppedRelations.push({ locusRelation: apiRecord, reason: ERR_FAULTY });
         } else {
@@ -210,10 +247,15 @@ export function api2HmNodes(relations: Array<LocusRelation>, loci: Array<Locus>,
                 const uidRelatedLocus: string = apiRecord.uid_locus_related;
                 if ((node.earlierNodes.findIndex(x => x === uidRelatedLocus) == -1) &&
                     (node.contemporaries.findIndex(x => x === uidRelatedLocus) == -1)) {
-                    if (chronType === LATER) {
-                        node.earlierNodes.push(uidRelatedLocus);
+                    if (relations.findIndex(r => r.uid_locus === uidRelatedLocus) == -1) {
+                        console.log(`api2HmNodes: relation ${node.name} and ${apiRecord.related_arch_context} is missing a reverse relation.`);
+                        droppedRelations.push({ locusRelation: apiRecord, reason: ERR_MISSING_REVERSE });
                     } else {
-                        node.contemporaries.push(uidRelatedLocus);
+                        if (chronType === LATER) {
+                            node.earlierNodes.push(uidRelatedLocus);
+                        } else {
+                            node.contemporaries.push(uidRelatedLocus);
+                        }
                     }
                 } else {
                     console.log(`api2HmNodes: found another chronological relevant relation between ${node.name} and ${apiRecord.related_arch_context}: ${apiRecord.relation_type}`);
@@ -221,10 +263,15 @@ export function api2HmNodes(relations: Array<LocusRelation>, loci: Array<Locus>,
                 }
 
             } else {
-                if (chronType === "") droppedRelations.push({
-                    locusRelation: apiRecord,
-                    reason: ERR_NON_TEMPORAL_RELATION,
-                });
+                if (chronType === "") {
+                    droppedRelations.push({
+                        locusRelation: apiRecord,
+                        reason: ERR_NON_TEMPORAL_RELATION,
+                    });
+                } else {
+                    console.log(`node ${node.id}/${node.name} has chron type EARLIER`)
+
+                }
             }
         }
     }
